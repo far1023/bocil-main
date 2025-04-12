@@ -77,7 +77,7 @@ This project is open-source and welcomes contributions! Here's how you can help 
 2. **Clone Your Fork**
 
    ```bash
-   git clone https://github.com/yourusername/bocil-main.git
+   git clone https://github.com/far1023/bocil-main.git
    cd bocil-main
    ```
 
