@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permainan Belajar Anak</title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet"
+        href="https://maxst.icons8.com/vue-static/landings/line-awesome/line-awesome/1.3.0/css/line-awesome.min.css">
+    <link rel="stylesheet" href="app.css" />
+    <!-- jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <h3 class="text-center mb-4">🎮 Mari Belajar Sambil Bermain! 🎮</h3>
+
+            <div class="mode-buttons">
+                <button id="letterMode" class="btn btn-indigo"><i class="las la-spell-check la-lg la-fw"></i> Mengenal
+                    Huruf</button>
+                <button id="numberMode" class="btn btn-purple"><i class="las la-sort-numeric-down la-lg la-fw"></i>
+                    Mengenal
+                    Angka</button>
+                <button id="quantityMode" class="btn btn-fuchsia"><i class="las la-coins la-lg la-fw"></i>
+                    Berhitung</button>
+                <button id="comparisonMode" class="btn btn-rose"><i class="las la-balance-scale la-lg la-fw"></i>
+                    Membandingkan</button>
+            </div>
+
+            <div class="score-display">
+                Skor: <span id="score">0</span> &emsp;
+                <span id="levelIndicator">Level: </span>
+            </div>
+
+
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+            </div>
+
+            <div class="game-area">
+                <div class="question-area" id="questionArea">
+                    Pilih mode permainan di atas untuk mulai bermain!
+                </div>
+                <div class="item-display" id="itemDisplay">
+                    <span class="pb-4">
+                        <b>Catatan:</b> Game ini dimaksudkan untuk anak usia sekolah yang sudah cukup mengenal huruf dan
+                        angka.
+                        Dengan ini anak akan megasah fokus dan mempelajari konsep matematis sederhana.
+                    </span>
+
+                    <span class="pb-4">
+                        <b>Cara bermain:</b> Ketikkan huruf atau angka atau simbol sesuai dengan kategori yang ada. Bila
+                        sudah
+                        memutuskan jawaban mohon tekan Enter pada keyboard, sistem akan memeriksa jawaban. Hasil
+                        pemeriksaan akan ditampilkan beserta jawaban yang benar apabila peserta salah menjawab
+                        pertanyaan. Tekan Spacebar/spasi untuk melanjutkan ke game berikutnya. Semakin tinggi level maka
+                        pertanyaan yang ditampilkan akan semakin bervariasi.
+                    </span>
+
+                    <span>
+                        <b>Tips:</b> Cara mudah menentukan simbol untuk membandingkan dua buah bilangan adalah dengan
+                        memberikan simbol yang sisi sudutnya megarah ke bilangan terkecil.
+                    </span>
+                </div>
+                <div class="input-area">
+                    <input type="text" id="answerInput" class="answer-input" maxlength="3" placeholder="...">
+                </div>
+                <div class="feedback" id="feedback"></div>
+                <button id="nextButton" class="btn btn-dark next-button">Selanjutnya</button>
+            </div>
+
+            <div class="settings-panel">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="fontToggle">
+                    <label class="form-check-label" for="fontToggle">Font Khusus Disleksia</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="contrastToggle">
+                    <label class="form-check-label" for="contrastToggle">Mode Kontras Tinggi</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="pt-3"><a href="index.html">early-learning</a></div>
+
+    <script>
+        $(document).ready(function () {
+            let currentMode = null;
+            let score = 0;
+            let level = 1;
+            let correctAnswer = '';
+            let questionCount = 0;
+            let maxQuestions = 10;
+
+            // DOM elements
+            const $questionArea = $('#questionArea');
+            const $itemDisplay = $('#itemDisplay');
+            const $answerInput = $('#answerInput');
+            const $feedback = $('#feedback');
+            const $score = $('#score');
+            const $nextButton = $('#nextButton');
+            const $progressBar = $('#progressBar');
+            const $levelIndicator = $('#levelIndicator');
+
+            // Mode buttons
+            $('#letterMode').click(function () {
+                level = 1;
+                startMode('letter');
+            });
+
+            $('#numberMode').click(function () {
+                level = 1;
+                startMode('number');
+            });
+
+            $('#quantityMode').click(function () {
+                level = 1;
+                startMode('quantity');
+            });
+
+            $('#comparisonMode').click(function () {
+                level = 1;
+                startMode('comparison');
+            });
+
+            // Start a game mode
+            function startMode(mode) {
+                currentMode = mode;
+                score = 0;
+                level = level;
+                questionCount = 0;
+                updateScore();
+                updateProgressBar();
+                updateLevelIndicator();
+                nextQuestion();
+
+                // Focus on the input
+                $answerInput.val('').prop('disabled', false).show().focus();
+            }
+
+            // Generate next question based on mode
+            function nextQuestion() {
+                $feedback.text('').removeClass('correct incorrect');
+                $nextButton.hide();
+                questionCount++;
+
+                $answerInput.val('').prop('disabled', false).show().focus();
+
+                if (questionCount > maxQuestions) {
+                    levelUp();
+                    questionCount = 1;
+                }
+
+                updateProgressBar();
+
+                switch (currentMode) {
+                    case 'letter':
+                        generateLetterQuestion();
+                        break;
+                    case 'number':
+                        generateNumberQuestion();
+                        break;
+                    case 'quantity':
+                        generateQuantityQuestion();
+                        break;
+                    case 'comparison':
+                        generateComparisonQuestion();
+                        break;
+                }
+            }
+
+            // Generate letter recognition question
+            function generateLetterQuestion() {
+                $answerInput.attr('placeholder', '...');
+                $answerInput.attr('maxlength', '3');
+                let letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+                // Adjust difficulty based on level
+                if (level === 1) {
+                    // Level 1: Show one uppercase letter
+                    let letter = letters.charAt(Math.floor(Math.random() * letters.length));
+                    correctAnswer = letter;
+                    $questionArea.html(`Huruf apa ini?`);
+                    $itemDisplay.html(`<div class="item">${letter}</div>`);
+                } else if (level === 2) {
+                    // Level 2: Show one lowercase letter
+                    let letter = letters.charAt(Math.floor(Math.random() * letters.length)).toLowerCase();
+                    correctAnswer = letter;
+                    $questionArea.html(`Huruf apa ini?`);
+                    $itemDisplay.html(`<div class="item">${letter}</div>`);
+                } else if (level === 3) {
+                    // Level 3+: Find a specific letter in a group
+                    let letterGroup = '';
+                    let letterCount = Math.min(level + 2, 10);
+                    let letterArray = [];
+
+                    // Generate random letters for the group
+                    for (let i = 0; i < letterCount; i++) {
+                        let randomLetter = letters.charAt(Math.floor(Math.random() * letters.length));
+                        if (Math.random() > 0.5) randomLetter = randomLetter.toLowerCase();
+                        letterArray.push(randomLetter);
+                        letterGroup += `<div class="item">${randomLetter}</div>`;
+                    }
+
+                    // Determine whether to ask for uppercase or lowercase
+                    let askForUppercase = Math.random() > 0.5;
+
+                    // Find the first letter of requested type
+                    let firstOfType = null;
+                    for (let i = 0; i < letterArray.length; i++) {
+                        let currentLetter = letterArray[i];
+                        if (askForUppercase && currentLetter === currentLetter.toUpperCase() &&
+                            currentLetter.match(/[A-Z]/)) {
+                            firstOfType = currentLetter;
+                            break;
+                        } else if (!askForUppercase && currentLetter === currentLetter.toLowerCase() &&
+                            currentLetter.match(/[a-z]/)) {
+                            firstOfType = currentLetter;
+                            break;
+                        }
+                    }
+
+                    // If no letter of requested type was found, add one at the beginning
+                    if (firstOfType === null) {
+                        let newLetter = letters.charAt(Math.floor(Math.random() * letters.length));
+                        if (!askForUppercase) newLetter = newLetter.toLowerCase();
+                        letterArray.unshift(newLetter);
+                        firstOfType = newLetter;
+
+                        // Rebuild the letterGroup HTML
+                        letterGroup = '';
+                        for (let i = 0; i < letterArray.length; i++) {
+                            letterGroup += `<div class="item">${letterArray[i]}</div>`;
+                        }
+                    }
+
+                    correctAnswer = firstOfType;
+                    $questionArea.html(`Ketik huruf <strong>${askForUppercase ? 'KAPITAL' : 'kecil'}</strong> pertama yang kamu lihat`);
+                    $itemDisplay.html(letterGroup);
+                } else {
+                    // Level 4+: Find a specific letter in a group with position
+                    // Create a group of random letters
+                    let letterGroup = '';
+                    let letterCount = Math.min(level + 2, 10);
+                    let letterArray = [];
+
+                    // Determine if we want uppercase or lowercase
+                    let askForUppercase = Math.random() > 0.5;
+
+                    // Generate random letters for the group
+                    for (let i = 0; i < letterCount; i++) {
+                        let randomLetter = letters.charAt(Math.floor(Math.random() * letters.length));
+                        if (Math.random() > 0.5) randomLetter = randomLetter.toLowerCase();
+                        letterArray.push(randomLetter);
+                    }
+
+                    // Count how many letters of the requested type (uppercase/lowercase) we have
+                    let typeCount = 0;
+                    for (let i = 0; i < letterArray.length; i++) {
+                        let isUppercase = letterArray[i] === letterArray[i].toUpperCase() &&
+                            letterArray[i].match(/[A-Z]/);
+                        if ((askForUppercase && isUppercase) || (!askForUppercase && !isUppercase)) {
+                            typeCount++;
+                        }
+                    }
+
+                    // If we don't have enough of the requested type, add more
+                    // We want at least 3 for levels 3-5, and more for higher levels
+                    let minTypeCount = Math.min(3, Math.max(level, 3));
+
+                    while (typeCount < minTypeCount) {
+                        let newLetter = letters.charAt(Math.floor(Math.random() * letters.length));
+                        if (!askForUppercase) newLetter = newLetter.toLowerCase();
+
+                        // Insert at random position
+                        let insertPos = Math.floor(Math.random() * (letterArray.length + 1));
+                        letterArray.splice(insertPos, 0, newLetter);
+
+                        typeCount++;
+                    }
+
+                    // Choose a position n (1-based) for the requested letter type
+                    // Make sure n is not greater than the number of letters of the requested type
+                    let n = Math.floor(Math.random() * Math.min(typeCount, 5)) + 1; // 1 to 5 or typeCount
+
+                    // Find the letter at position n of the requested type
+                    let currentPos = 0;
+                    let targetLetter = '';
+
+                    for (let i = 0; i < letterArray.length; i++) {
+                        let isUppercase = letterArray[i] === letterArray[i].toUpperCase() &&
+                            letterArray[i].match(/[A-Z]/);
+
+                        if ((askForUppercase && isUppercase) || (!askForUppercase && !isUppercase)) {
+                            currentPos++;
+                            if (currentPos === n) {
+                                targetLetter = letterArray[i];
+                                break;
+                            }
+                        }
+                    }
+
+                    // Set the correct answer
+                    correctAnswer = targetLetter;
+
+                    // Build letter group HTML
+                    letterGroup = '';
+                    for (let i = 0; i < letterArray.length; i++) {
+                        letterGroup += `<div class="item">${letterArray[i]}</div>`;
+                    }
+
+                    // Create the question text with the position
+                    let positionText = '';
+                    if (n === 1) positionText = 'pertama';
+                    else if (n === 2) positionText = 'kedua';
+                    else if (n === 3) positionText = 'ketiga';
+                    else if (n === 4) positionText = 'keempat';
+                    else if (n === 5) positionText = 'kelima';
+
+                    $questionArea.html(`Ketik huruf <strong>${askForUppercase ? 'KAPITAL' : 'kecil'} ${positionText}</strong> yang kamu lihat`);
+                    $itemDisplay.html(letterGroup);
+                }
+            }
+
+            // Generate number recognition question
+            function generateNumberQuestion() {
+                $answerInput.attr('placeholder', '...');
+                $answerInput.attr('maxlength', '3');
+                // Adjust difficulty based on level
+                let maxNumber = level * 10;
+
+                if (level === 1) {
+                    // Level 1: Simple number recognition 0-9
+                    let number = Math.floor(Math.random() * 10);
+                    correctAnswer = number.toString();
+                    $questionArea.html(`Angka berapa ini?`);
+                    $itemDisplay.html(`<div class="item">${number}</div>`);
+                } else if (level === 2) {
+                    // Level 2: Number recognition 10-20
+                    let number = Math.floor(Math.random() * 11) + 10;
+                    correctAnswer = number.toString();
+                    $questionArea.html(`Angka berapa ini?`);
+                    $itemDisplay.html(`<div class="item">${number}</div>`);
+                } else {
+                    // Level 3+: More complex number tasks
+                    let questionType = Math.floor(Math.random() * 3);
+
+                    if (questionType === 0) {
+                        // Number before
+                        let number = Math.floor(Math.random() * (maxNumber - 1)) + 2;
+                        correctAnswer = (number - 1).toString();
+                        $questionArea.html(`Angka sebelum ${number} adalah?`);
+                        $itemDisplay.html('');
+                    } else if (questionType === 1) {
+                        // Number after
+                        let number = Math.floor(Math.random() * (maxNumber - 1)) + 1;
+                        correctAnswer = (number + 1).toString();
+                        $questionArea.html(`Angka sesudah ${number} adalah?`);
+                        $itemDisplay.html('');
+                    } else {
+                        // Simple addition for higher levels
+                        let num1 = Math.floor(Math.random() * level) + 1;
+                        let num2 = Math.floor(Math.random() * level) + 1;
+                        correctAnswer = (num1 + num2).toString();
+                        $questionArea.html(`${num1} + ${num2} = ?`);
+                        $itemDisplay.html('');
+                    }
+                }
+            }
+
+            // Generate quantity categorization question
+            function generateQuantityQuestion() {
+                $answerInput.attr('placeholder', '...');
+                $answerInput.attr('maxlength', '3');
+                const emojis = ['🍎', '🍌', '🍓', '🍊', '🍇', '🍉', '🍒', '🐶', '🐱', '🐰', '🐻', '🦁', '🐯', '🦄', '⭐', '🌟', '🌈', '🎁'];
+
+                // Adjust difficulty based on level
+                if (level === 1) {
+                    // Level 1: Count simple items (1-5)
+                    let count = Math.floor(Math.random() * 5) + 1;
+                    let emoji = emojis[Math.floor(Math.random() * emojis.length)];
+                    let items = '';
+
+                    for (let i = 0; i < count; i++) {
+                        items += `<div class="item">${emoji}</div>`;
+                    }
+
+                    correctAnswer = count.toString();
+                    $questionArea.html(`Ada berapa ${emoji}?`);
+                    $itemDisplay.html(items);
+                } else if (level === 2) {
+                    // Level 2: Count more items (5-10)
+                    let count = Math.floor(Math.random() * 6) + 5;
+                    let emoji = emojis[Math.floor(Math.random() * emojis.length)];
+                    let items = '';
+
+                    for (let i = 0; i < count; i++) {
+                        items += `<div class="item">${emoji}</div>`;
+                    }
+
+                    correctAnswer = count.toString();
+                    $questionArea.html(`Ada berapa ${emoji}?`);
+                    $itemDisplay.html(items);
+                } else if (level === 3) {
+                    // Level 3: Categorization and more complex counting
+                    let emoji1 = emojis[Math.floor(Math.random() * emojis.length)];
+                    let emoji2 = emojis[Math.floor(Math.random() * emojis.length)];
+
+                    while (emoji2 === emoji1) {
+                        emoji2 = emojis[Math.floor(Math.random() * emojis.length)];
+                    }
+
+                    let count1 = Math.floor(Math.random() * level) + 1;
+                    let count2 = Math.floor(Math.random() * level) + 1;
+
+                    let items = '';
+                    for (let i = 0; i < count1; i++) {
+                        items += `<div class="item">${emoji1}</div>`;
+                    }
+                    for (let i = 0; i < count2; i++) {
+                        items += `<div class="item">${emoji2}</div>`;
+                    }
+
+                    let questionType = Math.floor(Math.random() * 3);
+
+                    if (questionType === 0) {
+                        // Count first type
+                        correctAnswer = count1.toString();
+                        $questionArea.html(`Ada berapa ${emoji1}?`);
+                    } else if (questionType === 1) {
+                        // Count second type
+                        correctAnswer = count2.toString();
+                        $questionArea.html(`Ada berapa ${emoji2}?`);
+                    } else {
+                        // Count total
+                        correctAnswer = (count1 + count2).toString();
+                        $questionArea.html(`Ada berapa jumlah semua benda?`);
+                    }
+
+                    $itemDisplay.html(items);
+                } else {
+                    // Level 4+: Add "how many more needed" and "how many to remove" questions
+                    let questionType = Math.floor(Math.random() * 5);
+
+                    if (questionType === 3) {
+                        // "How many more needed" question (addition)
+                        let emoji = emojis[Math.floor(Math.random() * emojis.length)];
+
+                        // Current count (what we show)
+                        let currentCount = Math.floor(Math.random() * (level - 1)) + 1;
+
+                        // Target count (what we want to reach)
+                        let targetCount = currentCount + Math.floor(Math.random() * 5) + 2;
+
+                        // The answer is the difference
+                        let difference = targetCount - currentCount;
+                        correctAnswer = difference.toString();
+
+                        // Display the current items
+                        let items = '';
+                        for (let i = 0; i < currentCount; i++) {
+                            items += `<div class="item">${emoji}</div>`;
+                        }
+
+                        $questionArea.html(`Berapa ${emoji} yang perlu <strong>DITAMBAH</strong> sehingga menjadi ${targetCount}${emoji}?`);
+                        $itemDisplay.html(items);
+                    } else if (questionType === 4) {
+                        // "How many to remove" question (subtraction)
+                        let emoji = emojis[Math.floor(Math.random() * emojis.length)];
+
+                        // Target count (what we want to reach)
+                        let targetCount = Math.floor(Math.random() * (level - 1)) + 1;
+
+                        // Current count (what we show)
+                        let currentCount = targetCount + Math.floor(Math.random() * 5) + 2;
+
+                        // The answer is the difference
+                        let difference = currentCount - targetCount;
+                        correctAnswer = difference.toString();
+
+                        // Display the current items
+                        let items = '';
+                        for (let i = 0; i < currentCount; i++) {
+                            items += `<div class="item">${emoji}</div>`;
+                        }
+
+                        $questionArea.html(`Berapa ${emoji} yang perlu <strong>DIAMBIL</strong> sehingga tersisa ${targetCount}${emoji}?`);
+                        $itemDisplay.html(items);
+                    } else if (level >= 5 && questionType === 2) {
+                        // Level 5+: Simple subtraction question
+                        let emoji = emojis[Math.floor(Math.random() * emojis.length)];
+
+                        // First number (larger)
+                        let num1 = Math.floor(Math.random() * level) + level;
+
+                        // Second number (smaller)
+                        let num2 = Math.floor(Math.random() * (num1 - 1)) + 1;
+
+                        // The answer is the difference
+                        correctAnswer = (num1 - num2).toString();
+
+                        $questionArea.html(`${num1} - ${num2} = ?`);
+                        $itemDisplay.html('');
+                    } else {
+                        // Use the existing level 3 logic but with higher counts
+                        let emoji1 = emojis[Math.floor(Math.random() * emojis.length)];
+                        let emoji2 = emojis[Math.floor(Math.random() * emojis.length)];
+
+                        while (emoji2 === emoji1) {
+                            emoji2 = emojis[Math.floor(Math.random() * emojis.length)];
+                        }
+
+                        let count1 = Math.floor(Math.random() * level) + 1;
+                        let count2 = Math.floor(Math.random() * level) + 1;
+
+                        let items = '';
+                        for (let i = 0; i < count1; i++) {
+                            items += `<div class="item">${emoji1}</div>`;
+                        }
+                        for (let i = 0; i < count2; i++) {
+                            items += `<div class="item">${emoji2}</div>`;
+                        }
+
+                        if (questionType === 0) {
+                            // Count first type
+                            correctAnswer = count1.toString();
+                            $questionArea.html(`Ada berapa ${emoji1}?`);
+                        } else if (questionType === 1) {
+                            // Count second type
+                            correctAnswer = count2.toString();
+                            $questionArea.html(`Ada berapa ${emoji2}?`);
+                        } else {
+                            // Count total (for level < 5 or questionType = 0, 1)
+                            correctAnswer = (count1 + count2).toString();
+                            $questionArea.html(`Ada berapa jumlah semua benda?`);
+                        }
+
+                        $itemDisplay.html(items);
+                    }
+                }
+            }
+
+            // Function to create comparison questions with consistent display
+            function generateComparisonQuestion() {
+                const emojis = ['🍎', '🍌', '🍓', '🍊', '🍇', '🍉', '🍒', '🐶', '🐱', '🐰', '🐻', '🦁', '🐯', '🦄', '⭐', '🌟', '🌈', '🎁'];
+
+                // Change input placeholder for comparison mode
+                $answerInput.attr('placeholder', '< = >');
+                $answerInput.attr('maxlength', '1');
+
+                // Select question type: number vs number, emoji vs emoji, or number vs emoji
+                let questionType;
+
+                if (level === 1) {
+                    // Level 1: Only small number comparisons (1-5)
+                    questionType = 0;
+                } else if (level === 2) {
+                    // Level 2: Randomly choose between numbers (1-10) or single emoji
+                    questionType = Math.floor(Math.random() * 2);
+                } else {
+                    // Level 3+: All question types
+                    questionType = Math.floor(Math.random() * 3);
+                }
+
+                if (questionType === 0) {
+                    // Type 0: Simple number comparison
+                    let num1, num2;
+
+                    // Set number range based on level
+                    let maxNum = Math.min(level * 5, 20);
+
+                    // Level 1: Create clear number differences
+                    if (level === 1) {
+                        // For level 1, create clear number differences
+                        num1 = Math.floor(Math.random() * 5) + 1;
+
+                        // Randomly choose whether num2 is greater, smaller, or equal
+                        let relation = Math.floor(Math.random() * 3); // 0: <, 1: =, 2: >
+
+                        if (relation === 0) { // num1 < num2
+                            num2 = num1 + Math.floor(Math.random() * 3) + 1;
+                            correctAnswer = '<';
+                        } else if (relation === 1) { // num1 = num2
+                            num2 = num1;
+                            correctAnswer = '=';
+                        } else { // num1 > num2
+                            num2 = Math.max(1, num1 - (Math.floor(Math.random() * 3) + 1));
+                            correctAnswer = '>';
+                        }
+                    } else {
+                        // Level 2+: More complex numbers
+                        num1 = Math.floor(Math.random() * maxNum) + 1;
+
+                        // Randomly determine the relationship between the two numbers
+                        let relation = Math.floor(Math.random() * 3); // 0: <, 1: =, 2: >
+
+                        if (relation === 0) { // num1 < num2
+                            num2 = num1 + Math.floor(Math.random() * (maxNum / 2)) + 1;
+                            correctAnswer = '<';
+                        } else if (relation === 1) { // num1 = num2
+                            num2 = num1;
+                            correctAnswer = '=';
+                        } else { // num1 > num2
+                            num2 = Math.max(1, num1 - (Math.floor(Math.random() * (maxNum / 2)) + 1));
+                            correctAnswer = '>';
+                        }
+                    }
+
+                    // Display question - CONSISTENTLY using comparison container
+                    $questionArea.html(`Bandingkan dan berikan simbol yang tepat (<, =, atau >)`);
+
+                    // Display numbers in comparison container (like emoji)
+                    $itemDisplay.html(`<div class="comparison-container"><div class="comparison-group"><div class="number-item">${num1}</div></div><div class="comparison-symbol">?</div><div class="comparison-group"><div class="number-item">${num2}</div></div></div>`);
+
+                } else if (questionType === 1) {
+                    // Type 1: Comparison of same type emoji quantities
+                    let emoji = emojis[Math.floor(Math.random() * emojis.length)];
+                    let count1, count2;
+
+                    // Set quantity range based on level
+                    let maxCount = Math.min(level * 3, 10);
+
+                    // Randomly determine the relationship between the two quantities
+                    let relation = Math.floor(Math.random() * 3); // 0: <, 1: =, 2: >
+
+                    if (level === 1) {
+                        // Level 1: Clear differences
+                        count1 = Math.floor(Math.random() * 3) + 1;
+
+                        if (relation === 0) { // count1 < count2
+                            count2 = count1 + Math.floor(Math.random() * 2) + 1;
+                            correctAnswer = '<';
+                        } else if (relation === 1) { // count1 = count2
+                            count2 = count1;
+                            correctAnswer = '=';
+                        } else { // count1 > count2
+                            count2 = Math.max(1, count1 - (Math.floor(Math.random() * 2) + 1));
+                            correctAnswer = '>';
+                        }
+                    } else {
+                        // Level 2+: More complex quantities
+                        count1 = Math.floor(Math.random() * maxCount) + 1;
+
+                        if (relation === 0) { // count1 < count2
+                            count2 = count1 + Math.floor(Math.random() * (maxCount / 2)) + 1;
+                            correctAnswer = '<';
+                        } else if (relation === 1) { // count1 = count2
+                            count2 = count1;
+                            correctAnswer = '=';
+                        } else { // count1 > count2
+                            count2 = Math.max(1, count1 - (Math.floor(Math.random() * (maxCount / 2)) + 1));
+                            correctAnswer = '>';
+                        }
+                    }
+
+                    // Create emoji display for both groups
+                    let items1 = '';
+                    for (let i = 0; i < count1; i++) {
+                        items1 += `<div class="item">${emoji}</div>`;
+                    }
+
+                    let items2 = '';
+                    for (let i = 0; i < count2; i++) {
+                        items2 += `<div class="item">${emoji}</div>`;
+                    }
+
+                    // Display question
+                    $questionArea.html(`Bandingkan dan berikan simbol yang tepat (<, =, atau >)`);
+                    $itemDisplay.html(`<div class="comparison-container"><div class="comparison-group">${items1}</div><div class="comparison-symbol">?</div><div class="comparison-group">${items2}</div></div>`);
+
+                } else {
+                    // Type 2: Comparison of different type emoji quantities (Level 3+)
+                    let emoji1 = emojis[Math.floor(Math.random() * emojis.length)];
+                    let emoji2 = emojis[Math.floor(Math.random() * emojis.length)];
+
+                    // Ensure both emojis are different
+                    while (emoji2 === emoji1) {
+                        emoji2 = emojis[Math.floor(Math.random() * emojis.length)];
+                    }
+
+                    let count1 = Math.floor(Math.random() * level) + 1;
+                    let count2 = Math.floor(Math.random() * level) + 1;
+
+                    // Determine answer based on quantity comparison
+                    if (count1 < count2) {
+                        correctAnswer = '<';
+                    } else if (count1 === count2) {
+                        correctAnswer = '=';
+                    } else {
+                        correctAnswer = '>';
+                    }
+
+                    // Create emoji display for both groups
+                    let items1 = '';
+                    for (let i = 0; i < count1; i++) {
+                        items1 += `<div class="item">${emoji1}</div>`;
+                    }
+
+                    let items2 = '';
+                    for (let i = 0; i < count2; i++) {
+                        items2 += `<div class="item">${emoji2}</div>`;
+                    }
+
+                    // Display question
+                    $questionArea.html(`Bandingkan dan berikan simbol yang tepat (<, =, atau >)`);
+                    $itemDisplay.html(`<div class="comparison-container"><div class="comparison-group">${items1}</div><div class="comparison-symbol">?</div><div class="comparison-group">${items2}</div></div>`);
+                }
+
+                // Reset for next question
+                $nextButton.hide();
+            }
+
+            // Input validation to restrict allowed characters and control Enter key behavior
+            $answerInput.on('keydown', function (e) {
+                // Allow backspace (key code 8) and arrow keys for navigation
+                if (e.keyCode === 8 || (e.keyCode >= 37 && e.keyCode <= 40)) {
+                    return true;
+                }
+
+                // Block Enter key if the input is empty
+                if (e.keyCode === 13) { // Enter key
+                    if ($(this).val().trim() === '') {
+                        e.preventDefault();
+                        return false;
+                    }
+                    checkAnswer();
+                    e.preventDefault();
+                    return false;
+                }
+
+                // For comparison mode, allow only < = > symbols
+                if (currentMode === 'comparison') {
+                    const isComparisonSymbol =
+                        e.key === '<' ||
+                        e.key === '=' ||
+                        e.key === '>';
+
+                    if (!isComparisonSymbol) {
+                        e.preventDefault();
+                        return false;
+                    }
+                    return true;
+                }
+
+                // For other modes (letter, number, quantity), allow only alphanumeric
+                const isLetter = (e.keyCode >= 65 && e.keyCode <= 90);
+                const isNumber = (e.keyCode >= 48 && e.keyCode <= 57) || (e.keyCode >= 96 && e.keyCode <= 105);
+
+                if (!(isLetter || isNumber)) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                // If we've reached the maxlength, prevent further input
+                if (this.value.length >= parseInt($(this).attr('maxlength'))) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
+            // Remove the existing keypress handler to prevent conflicts
+            $answerInput.off('keypress');
+
+            // Check user's answer
+            function checkAnswer() {
+                let userAnswer = $answerInput.val().trim().toLowerCase();
+                let correct = userAnswer === correctAnswer.toLowerCase();
+
+                if (correct) {
+                    score++;
+                    updateScore();
+                    $feedback.text('Benar! 🎉').addClass('correct');
+                    showCelebration();
+                } else {
+                    $feedback.html(`Coba lagi! Jawaban yang benar adalah &nbsp;<strong>${correctAnswer}</strong>`).addClass('incorrect');
+                }
+
+                $nextButton.show();
+                $answerInput.prop('disabled', true);
+            }
+
+            // Show celebration animation
+            function showCelebration() {
+                const emojis = ['🎉', '⭐', '🌟', '👍', '🥳', '🏆'];
+                const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+
+                const $celebration = $('<div>').addClass('celebration').text(emoji);
+                $celebration.css({
+                    left: Math.random() * 80 + 10 + '%',
+                    top: Math.random() * 80 + '%'
+                });
+
+                $('.game-container').append($celebration);
+
+                setTimeout(() => {
+                    $celebration.remove();
+                }, 1000);
+            }
+
+            // Next button click
+            $nextButton.click(function () {
+                $answerInput.prop('disabled', false).val('').focus();
+                nextQuestion();
+            });
+
+            $(document).on('keydown', function (e) {
+                // Only respond if next button is visible and spacebar is pressed
+                if ($nextButton.is(':visible') && e.key === ' ') {
+                    e.preventDefault(); // Prevent default spacebar behavior (scrolling)
+                    $answerInput.val('').prop('disabled', false).focus();
+                    allowedChar = null;
+                    nextQuestion();
+                }
+            });
+
+            // Level up
+            function levelUp() {
+                level++;
+                updateLevelIndicator();
+
+                // Show level up message
+                $feedback.html(`<strong>Level ${level}!</strong> 🎉 Semakin sulit, semakin seru!`);
+                $answerInput.val('').prop('disabled', false);
+
+                // Reset progress
+                questionCount = 0;
+                updateProgressBar();
+            }
+
+            // Update score display
+            function updateScore() {
+                $score.text(score);
+            }
+
+            // Update progress bar
+            function updateProgressBar() {
+                let progress = (questionCount / maxQuestions) * 100;
+                $progressBar.css('width', `${progress}%`);
+            }
+
+            // Update level indicator
+            function updateLevelIndicator() {
+                $levelIndicator.text(`Level: ${level}`);
+            }
+
+            // Initialize game - waiting for user to select a mode
+            $answerInput.hide();
+
+            // Ensure answerInput is always focused after clicking anywhere in the game area
+            $('.game-area').on('click', function () {
+                if (!$answerInput.prop('disabled')) {
+                    $answerInput.focus();
+                }
+            });
+
+            // Handle window focus for better mobile experience
+            $(window).on('focus', function () {
+                if (currentMode && !$answerInput.prop('disabled')) {
+                    $answerInput.focus();
+                }
+            });
+        });
+    </script>
+</body>
+
+<script src="app.js"></script>
+
+</html>

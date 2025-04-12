@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permainan Belajar Anak</title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet"
+        href="https://maxst.icons8.com/vue-static/landings/line-awesome/line-awesome/1.3.0/css/line-awesome.min.css">
+    <link rel="stylesheet" href="app.css" />
+    <!-- jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <h3 class="text-center mb-4">🎮 Mari Belajar Sambil Bermain! 🎮</h3>
+
+            <div class="mode-buttons">
+                <button id="letterMode" class="btn btn-indigo"><i class="las la-spell-check la-lg la-fw"></i> Mengenal
+                    Huruf</button>
+                <button id="numberMode" class="btn btn-purple"><i class="las la-sort-numeric-down la-lg la-fw"></i>
+                    Mengenal
+                    Angka</button>
+                <button id="quantityMode" class="btn btn-fuchsia"><i class="las la-coins la-lg la-fw"></i>
+                    Berhitung</button>
+            </div>
+
+            <div class="score-display">
+                Skor: <span id="score">0</span> &emsp;
+                <span id="levelIndicator">Level: </span>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+            </div>
+
+            <div class="game-area">
+                <div class="question-area" id="questionArea">
+                    Pilih mode permainan di atas untuk mulai bermain!
+                </div>
+                <div class="item-display" id="itemDisplay">
+                    <span class="pb-4">
+                        <b>Catatan:</b> Game ini dimaksudkan untuk anak usia dini yang ingin mengetahui bentuk-bentuk
+                        angka dan
+                        huruf serta belajar berhitung sederhana dengan mengelompokkan suatu gambar.
+                    </span>
+
+                    <span>
+                        <b>Cara bermain:</b> Ketikkan huruf atau angka sesuai dengan kategori yang ada. Ketikkan
+                        sebanyak tiga
+                        karakter yang sama untuk membantu anak beradaptasi menggunakan keyboard, sistem akan memeriksa
+                        jawaban secara otomatis setelahnya. Hasil jawaban benar atau salah akan ditampilkan namun
+                        mohon untuk tidak mengkoreksi anak, cukup berikan pemahaman bila jawaban benar akan berwarna
+                        hijau
+                        dan merah apabila kurang tepat. Tekan Spacebar/spasi untuk melanjutkan ke game berikutnya.
+                    </span>
+                </div>
+                <div class="input-area">
+                    <input type="text" id="answerInput" class="answer-input" maxlength="3" placeholder="...">
+                </div>
+                <div class="feedback" id="feedback"></div>
+                <button id="nextButton" class="btn btn-dark next-button">Selanjutnya</button>
+            </div>
+
+            <div class="settings-panel">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="fontToggle">
+                    <label class="form-check-label" for="fontToggle">Font Khusus Disleksia</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="contrastToggle">
+                    <label class="form-check-label" for="contrastToggle">Mode Kontras Tinggi</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="pt-3">
+        <a href="index.html">early-learning</a>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            // Game variables
+            let currentMode = null;
+            let score = 0;
+            let level = 1;
+            let correctAnswer = '';
+            let questionCount = 0;
+            let maxQuestions = 10;
+            let allowedChar = null
+            let previousLength = 0;
+            let indonesianVoice = null;
+
+            const utterance = new SpeechSynthesisUtterance();
+
+            function loadVoices() {
+                return new Promise((resolve) => {
+                    let voices = window.speechSynthesis.getVoices();
+                    if (voices.length !== 0) {
+                        resolve(voices);
+                    } else {
+                        window.speechSynthesis.onvoiceschanged = () => {
+                            voices = window.speechSynthesis.getVoices();
+                            resolve(voices);
+                        };
+                    }
+                });
+            }
+
+            async function initVoice() {
+                const voices = await loadVoices();
+                indonesianVoice = voices.find((voice) => voice.lang.includes("id-ID"));
+                if (!indonesianVoice) {
+                    console.warn("Indonesian voice not found, using default");
+                }
+            }
+
+            // Call this once on page load
+            initVoice();
+
+            // DOM elements
+            const $questionArea = $('#questionArea');
+            const $itemDisplay = $('#itemDisplay');
+            const $answerInput = $('#answerInput');
+            const $feedback = $('#feedback');
+            const $score = $('#score');
+            const $nextButton = $('#nextButton');
+            const $progressBar = $('#progressBar');
+            const $levelIndicator = $('#levelIndicator');
+
+            // Mode buttons
+            $('#letterMode').click(function () {
+                level = 1;
+                startMode('letter');
+            });
+
+            $('#numberMode').click(function () {
+                level = 1;
+                startMode('number');
+            });
+
+            $('#quantityMode').click(function () {
+                level = 1;
+                startMode('quantity');
+            });
+
+            // Start a game mode
+            function startMode(mode) {
+                currentMode = mode;
+                score = 0;
+                level = level;
+                questionCount = 0;
+                updateScore();
+                updateProgressBar();
+                updateLevelIndicator();
+
+                // Reset and enable input
+                $answerInput.val('').prop('disabled', false).show().focus();
+                allowedChar = null;
+
+                nextQuestion();
+            }
+
+            // Generate next question based on mode
+            function nextQuestion() {
+                $feedback.text('').removeClass('correct incorrect');
+                $nextButton.hide();
+                questionCount++;
+
+                // Reset input state
+                $answerInput.val('').prop('disabled', false).show().focus();
+                allowedChar = null;
+                previousLength = 0;
+
+                if (questionCount > maxQuestions) {
+                    levelUp();
+                    questionCount = 1;
+                }
+
+                updateProgressBar();
+
+                switch (currentMode) {
+                    case 'letter':
+                        generateLetterQuestion();
+                        break;
+                    case 'number':
+                        generateNumberQuestion();
+                        break;
+                    case 'quantity':
+                        generateQuantityQuestion();
+                        break;
+                }
+            }
+
+
+            // Generate letter recognition question
+            function generateLetterQuestion() {
+                let letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                let letter = letters.charAt(Math.floor(Math.random() * letters.length));
+                correctAnswer = letter;
+
+                // Adjust difficulty based on level
+                if (level === 2) {
+                    // Level 2: Show one lowercase letter6
+                    letter = letter.toLowerCase();
+                } else if (level > 2) {
+                    if (Math.round(Math.random() * 10) % 2 === 0) {
+                        letter = letter.toLowerCase();
+                    }
+                }
+                $questionArea.html(`Huruf apa ini?`);
+                $itemDisplay.html(`<div class="item">${letter}</div>`);
+            }
+
+            // Generate number recognition question
+            function generateNumberQuestion() {
+                // Adjust difficulty based on level
+                let maxNumber = level * 10;
+
+                let number = Math.floor(Math.random() * 10);
+                correctAnswer = number.toString();
+                $questionArea.html(`Angka berapa ini?`);
+                $itemDisplay.html(`<div class="item">${number}</div>`);
+            }
+
+            // Generate quantity categorization question
+            function generateQuantityQuestion() {
+                const emojis = ['🍎', '🍌', '🍓', '🍊', '🍇', '🍉', '🍒', '🐶', '🐱', '🐰', '🐻', '🦁', '🐯', '🦄', '⭐', '🌟', '🌈', '🎁'];
+
+                // Adjust difficulty based on level
+                if (level === 1) {
+                    // Level 1: Count simple items (1-5)
+                    let count = Math.floor(Math.random() * 5) + 1;
+                    let emoji = emojis[Math.floor(Math.random() * emojis.length)];
+                    let items = '';
+
+                    for (let i = 0; i < count; i++) {
+                        items += `<div class="item">${emoji}</div>`;
+                    }
+
+                    correctAnswer = count.toString();
+                    $questionArea.html(`Ada berapa ${emoji}?`);
+                    $itemDisplay.html(items);
+                } else if (level === 2) {
+                    // Level 2: Count more items (5-10)
+                    let count = Math.floor(Math.random() * 6) + 5;
+                    let emoji = emojis[Math.floor(Math.random() * emojis.length)];
+                    let items = '';
+
+                    for (let i = 0; i < count; i++) {
+                        items += `<div class="item">${emoji}</div>`;
+                    }
+
+                    correctAnswer = count.toString();
+                    $questionArea.html(`Ada berapa ${emoji}?`);
+                    $itemDisplay.html(items);
+                } else {
+                    // Level 3+: Categorization and more complex counting
+                    let emoji1 = emojis[Math.floor(Math.random() * emojis.length)];
+                    let emoji2 = emojis[Math.floor(Math.random() * emojis.length)];
+
+                    while (emoji2 === emoji1) {
+                        emoji2 = emojis[Math.floor(Math.random() * emojis.length)];
+                    }
+
+                    let count1 = Math.floor(Math.random() * level) + 1;
+                    let count2 = Math.floor(Math.random() * level) + 1;
+
+                    let items = '';
+                    for (let i = 0; i < count1; i++) {
+                        items += `<div class="item">${emoji1}</div>`;
+                    }
+                    for (let i = 0; i < count2; i++) {
+                        items += `<div class="item">${emoji2}</div>`;
+                    }
+
+                    let questionType = Math.floor(Math.random() * 3);
+
+                    if (questionType === 0) {
+                        // Count first type
+                        correctAnswer = count1.toString();
+                        $questionArea.html(`Ada berapa ${emoji1}?`);
+                    } else if (questionType === 1) {
+                        // Count second type
+                        correctAnswer = count2.toString();
+                        $questionArea.html(`Ada berapa ${emoji2}?`);
+                    } else {
+                        // Count total
+                        correctAnswer = (count1 + count2).toString();
+                        $questionArea.html(`Ada berapa jumlah semua benda?`);
+                    }
+
+                    $itemDisplay.html(items);
+                }
+            }
+
+            function speak(text) {
+                if ('speechSynthesis' in window) {
+                    // Handle single letter pronunciation
+                    if (text.length === 1) {
+                        utterance.text = text.toLowerCase() + ' ';
+                    } else {
+                        utterance.text = text;
+                    }
+
+                    utterance.lang = 'id-ID';
+                    utterance.rate = 1;
+
+                    if (indonesianVoice) {
+                        utterance.voice = indonesianVoice;
+                    }
+
+                    window.speechSynthesis.speak(utterance);
+                    console.log('bersuaralah')
+                }
+            }
+
+
+            $answerInput.on('keydown', function (e) {
+                // Allow backspace (key code 8)
+                if (e.keyCode === 8) {
+                    return true;
+                }
+
+                // Allow alphanumeric characters
+                // Letters A-Z and a-z (key codes 65-90)
+                // Numbers 0-9 (key codes 48-57 or numpad 96-105)
+                const isLetter = (e.keyCode >= 65 && e.keyCode <= 90);
+                const isNumber = (e.keyCode >= 48 && e.keyCode <= 57) || (e.keyCode >= 96 && e.keyCode <= 105);
+
+                if (!(isLetter || isNumber)) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                // Continue with the original validation logic
+                const oldLength = this.value.length;
+                const inputChar = String.fromCharCode(e.keyCode).toUpperCase();
+
+                // If input is empty, allow any alphanumeric as the first character
+                if (oldLength === 0) {
+                    allowedChar = inputChar;
+                    // Speak the first character when it's entered
+                    return true;
+                }
+
+                // Only allow characters matching the allowedChar
+                if (inputChar !== allowedChar) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                // Check if we're about to reach maxLength
+                const maxLen = parseInt($(this).attr('maxlength')) || 6;
+                if (oldLength + 1 >= maxLen) {
+                    setTimeout(() => {
+                        checkAnswer();
+                    }, 100);
+                }
+            });
+
+            // Replace the original input handler to prevent it from conflicting
+            $answerInput.off('input');
+            $answerInput.on('input', function () {
+                const currentLength = this.value.length;
+
+                // Only speak if a character was added (not removed)
+                if (currentLength > previousLength && allowedChar) {
+                    const lastChar = this.value[currentLength - 1].toUpperCase();
+                    if (lastChar === allowedChar) {
+                        speak(lastChar);
+                    }
+                }
+
+                // Update previous length for next comparison
+                previousLength = currentLength;
+            });
+
+            // Check user's answer
+            function checkAnswer() {
+                let userAnswer = $answerInput.val().trim().toLowerCase();
+
+                // Get just the first letter from both the user's answer and the correct answer
+                let userFirstLetter = userAnswer.length > 0 ? userAnswer[0] : '';
+                let correctFirstLetter = correctAnswer.toLowerCase()[0];
+
+                // Compare only the first letters
+                let correct = userFirstLetter === correctFirstLetter;
+
+                if (correct) {
+                    score++;
+                    updateScore();
+                    $feedback.text('Benar! 🎉').addClass('correct');
+                    showCelebration();
+                } else {
+                    $feedback.html(`Coba lagi! Jawaban kamu kurang tepat</strong>`).addClass('incorrect');
+                }
+
+                $nextButton.show();
+                $answerInput.prop('disabled', true);
+            }
+
+            // Show celebration animation
+            function showCelebration() {
+                const emojis = ['🎉', '⭐', '🌟', '👍', '🥳', '🏆'];
+                const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+
+                const $celebration = $('<div>').addClass('celebration').text(emoji);
+                $celebration.css({
+                    left: Math.random() * 80 + 10 + '%',
+                    top: Math.random() * 80 + '%'
+                });
+
+                $('.game-container').append($celebration);
+
+                setTimeout(() => {
+                    $celebration.remove();
+                }, 3000);
+            }
+
+            // Next button click
+            $nextButton.click(function () {
+                $answerInput.val('').prop('disabled', false).focus();
+                allowedChar = null;
+                nextQuestion();
+            });
+
+            $(document).on('keydown', function (e) {
+                // Only respond if next button is visible and spacebar is pressed
+                if ($nextButton.is(':visible') && e.key === ' ') {
+                    e.preventDefault(); // Prevent default spacebar behavior (scrolling)
+                    $answerInput.val('').prop('disabled', false).focus();
+                    allowedChar = null;
+                    nextQuestion();
+                }
+            });
+
+            // Level up
+            function levelUp() {
+                level++;
+                updateLevelIndicator();
+
+                // Show level up message
+                $feedback.html(`<strong>Yay! Level ${level}</strong> 🎉 Makin seru`);
+
+                // Temporarily disable input during level transition
+                $answerInput.val('').prop('disabled', false);
+                allowedChar = null;
+                previousLength = 0;
+
+                // Reset progress
+                questionCount = 0;
+                updateProgressBar();
+            }
+
+            // Update score display
+            function updateScore() {
+                $score.text(score);
+            }
+
+            // Update progress bar
+            function updateProgressBar() {
+                let progress = (questionCount / maxQuestions) * 100;
+                $progressBar.css('width', `${progress}%`);
+            }
+
+            // Update level indicator
+            function updateLevelIndicator() {
+                $levelIndicator.text(`Level: ${level}`);
+            }
+
+            // Initialize game - waiting for user to select a mode
+            $answerInput.hide();
+
+            // Ensure answerInput is always focused after clicking anywhere in the game area
+            $('.game-area').on('click', function () {
+                if (!$answerInput.prop('disabled')) {
+                    $answerInput.focus();
+                }
+            });
+
+            // Handle window focus for better mobile experience
+            $(window).on('focus', function () {
+                if (currentMode && !$answerInput.prop('disabled')) {
+                    $answerInput.focus();
+                }
+            });
+        });
+    </script>
+</body>
+
+<script src="app.js"></script>
+
+</html>
