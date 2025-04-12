@@ -28,6 +28,10 @@ h3 {
   font-weight: 600;
 }
 
+footer a {
+  text-decoration: none !important;
+}
+
 .btn-indigo {
   background-color: #432dd7 !important;
   color: #fafafa !important;
