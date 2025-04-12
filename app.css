@@ -29,12 +29,12 @@ h3 {
 }
 
 .btn-indigo {
-  background-color: #432dd7;
+  background-color: #432dd7 !important;
   color: #fafafa !important;
 }
 
 .btn-indigo:hover {
-  background-color: #372aac;
+  background-color: #372aac !important;
 }
 
 .btn-indigo:active {
@@ -42,12 +42,12 @@ h3 {
 }
 
 .btn-purple {
-  background-color: #6f42c1;
+  background-color: #6f42c1 !important;
   color: #fafafa !important;
 }
 
 .btn-purple:hover {
-  background-color: #59359a;
+  background-color: #59359a !important;
 }
 
 .btn-purple:active {
@@ -55,12 +55,12 @@ h3 {
 }
 
 .btn-fuchsia {
-  background-color: #a800b7;
+  background-color: #a800b7 !important;
   color: #fafafa !important;
 }
 
 .btn-fuchsia:hover {
-  background-color: #8a0194;
+  background-color: #8a0194 !important;
 }
 
 .btn-fuchsia:active {
@@ -68,12 +68,12 @@ h3 {
 }
 
 .btn-rose {
-  background-color: #a3004c;
+  background-color: #a3004c !important;
   color: #fafafa !important;
 }
 
 .btn-rose:hover {
-  background-color: #861043;
+  background-color: #861043 !important;
 }
 
 .btn-rose:active {
@@ -429,4 +429,21 @@ h3 {
     font-size: 28px;
     min-width: 40px;
   }
+}
+
+::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2f2f2f;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2f2f2f;
 }
