@@ -28,8 +28,15 @@ h3 {
   font-weight: 600;
 }
 
+footer div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
 footer a {
   text-decoration: none !important;
+  margin: 5px 10px;
 }
 
 .btn-indigo {
@@ -450,4 +457,8 @@ footer a {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #2f2f2f;
+}
+
+.voice-unavailable {
+  color: #f44336;
 }
