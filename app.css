@@ -28,8 +28,15 @@ h3 {
   font-weight: 600;
 }
 
+footer div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
 footer a {
   text-decoration: none !important;
+  margin: 5px 10px;
 }
 
 .btn-indigo {

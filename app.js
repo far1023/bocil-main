@@ -18,6 +18,8 @@ function detectOS() {
 
 // Wait for DOM to be fully loaded
 $(document).ready(function () {
+  $("footer").load("./footer.html");
+
   // Run OS detection
   detectOS();
 
