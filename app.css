@@ -458,3 +458,7 @@ footer a {
 ::-webkit-scrollbar-thumb:hover {
   background: #2f2f2f;
 }
+
+.voice-unavailable {
+  color: #f44336;
+}

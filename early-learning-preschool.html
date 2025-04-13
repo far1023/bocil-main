@@ -30,8 +30,10 @@
             </div>
 
             <div class="score-display">
-                Skor: <span id="score">0</span> &emsp;
-                <span id="levelIndicator">Level: </span>
+                <span id="voiceStatus" title="Status fitur suara" style="vertical-align: middle;"><i
+                        class="las la-volume-up"></i></span> &emsp;
+                <span style="vertical-align: middle;">Skor: <span id="score">0</span></span> &emsp;
+                <span id="levelIndicator" style="vertical-align: middle;">Level: </span>
             </div>
 
             <div class="progress-container">
@@ -91,30 +93,104 @@
             let questionCount = 0;
             let maxQuestions = 10;
             let allowedChar = null
-            let previousLength = 0;
-            let indonesianVoice = null;
+            let previousLength = 0; let indonesianVoice = null;
+            let speechSynthesisAvailable = false;
 
-            const utterance = new SpeechSynthesisUtterance();
+            // Check if speech synthesis is available and set up voices
+            function initVoice() {
+                // Default state - checking
+                $('#voiceStatus').html('<i class="las la-volume-up"></i>');
+
+                // Check if speech synthesis is available in this browser
+                if ('speechSynthesis' in window) {
+                    try {
+                        speechSynthesisAvailable = true;
+
+                        // Load available voices
+                        loadVoices().then(voices => {
+                            // Mark as available
+                            $('#voiceStatus').addClass('voice-available').removeClass('voice-unavailable');
+
+                            indonesianVoice = voices.find((voice) => voice.lang.includes("id-ID"));
+                            if (!indonesianVoice) {
+                                console.log("Indonesian voice not found, will use default voice");
+                                $('#voiceStatus').html('default <i class="las la-volume-up la-lg"></i>');
+                            } else {
+                                $('#voiceStatus').html('id-ID <i class="las la-volume-up la-lg"></i>');
+                            }
+                        }).catch(error => {
+                            console.log("Error loading voices:", error);
+                            markVoiceUnavailable();
+                        });
+                    } catch (error) {
+                        console.log("Speech synthesis error:", error);
+                        markVoiceUnavailable();
+                    }
+                } else {
+                    console.log("Speech synthesis not supported in this browser");
+                    markVoiceUnavailable();
+                }
+            }
+
+            function markVoiceUnavailable() {
+                speechSynthesisAvailable = false;
+                $('#voiceStatus').html('Not available <i class="las la-volume-mute la-lg"></i>');
+                $('#voiceStatus').addClass('voice-unavailable').removeClass('voice-available');
+            }
 
             function loadVoices() {
-                return new Promise((resolve) => {
-                    let voices = window.speechSynthesis.getVoices();
-                    if (voices.length !== 0) {
-                        resolve(voices);
-                    } else {
-                        window.speechSynthesis.onvoiceschanged = () => {
-                            voices = window.speechSynthesis.getVoices();
+                return new Promise((resolve, reject) => {
+                    try {
+                        let voices = window.speechSynthesis.getVoices();
+                        if (voices.length !== 0) {
                             resolve(voices);
-                        };
+                        } else {
+                            window.speechSynthesis.onvoiceschanged = () => {
+                                voices = window.speechSynthesis.getVoices();
+                                resolve(voices);
+                            };
+
+                            // Add timeout to prevent waiting forever
+                            setTimeout(() => {
+                                if (voices.length === 0) {
+                                    reject("Voices not loaded after timeout");
+                                }
+                            }, 3000);
+                        }
+                    } catch (error) {
+                        reject(error);
                     }
                 });
             }
 
-            async function initVoice() {
-                const voices = await loadVoices();
-                indonesianVoice = voices.find((voice) => voice.lang.includes("id-ID"));
-                if (!indonesianVoice) {
-                    console.warn("Indonesian voice not found, using default");
+            // Improved speak function with better error handling
+            function speak(text) {
+                if (!speechSynthesisAvailable) {
+                    return; // Silently exit if speech synthesis isn't available
+                }
+
+                try {
+                    // Create a new utterance for each speech request
+                    const utterance = new SpeechSynthesisUtterance();
+
+                    // Handle single letter pronunciation
+                    if (text.length === 1) {
+                        utterance.text = text.toLowerCase() + ' ';
+                    } else {
+                        utterance.text = text;
+                    }
+
+                    utterance.lang = 'id-ID';
+                    utterance.rate = 0.6;
+
+                    if (indonesianVoice) {
+                        utterance.voice = indonesianVoice;
+                    }
+
+                    window.speechSynthesis.speak(utterance);
+                } catch (error) {
+                    console.log('Speech synthesis error:', error);
+                    // Silently fail - don't block game functionality
                 }
             }
 
@@ -296,28 +372,6 @@
                     $itemDisplay.html(items);
                 }
             }
-
-            function speak(text) {
-                if ('speechSynthesis' in window) {
-                    // Handle single letter pronunciation
-                    if (text.length === 1) {
-                        utterance.text = text.toLowerCase() + ' ';
-                    } else {
-                        utterance.text = text;
-                    }
-
-                    utterance.lang = 'id-ID';
-                    utterance.rate = 1;
-
-                    if (indonesianVoice) {
-                        utterance.voice = indonesianVoice;
-                    }
-
-                    window.speechSynthesis.speak(utterance);
-                    console.log('bersuaralah')
-                }
-            }
-
 
             $answerInput.on('keydown', function (e) {
                 // Allow backspace (key code 8)
