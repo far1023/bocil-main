@@ -1,0 +1,3 @@
+User-agent: *
+Disallow:
+Sitemap: https://bocil-main.vercel.app/sitemap.xml
