@@ -746,6 +746,12 @@
 
                 // For comparison mode, allow only < = > symbols
                 if (currentMode === 'comparison') {
+                    const allowed = ['<', '=', '>'];
+                    if (!allowed.includes(e.key)) {
+                        e.preventDefault();
+                        return false;
+                    }
+
                     const isComparisonSymbol =
                         e.key === '<' ||
                         e.key === '=' ||
