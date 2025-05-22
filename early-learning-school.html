@@ -785,8 +785,14 @@
 
             // Check user's answer
             function checkAnswer() {
-                let userAnswer = $answerInput.val().trim().toLowerCase();
-                let correct = userAnswer === correctAnswer.toLowerCase();
+                let userAnswer = $answerInput.val().trim();
+                let correct = false;
+
+                if (currentMode === 'comparison') {
+                    correct = userAnswer === correctAnswer;
+                } else {
+                    correct = userAnswer.toLowerCase() === correctAnswer.toLowerCase();
+                }
 
                 if (correct) {
                     score++;
